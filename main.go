@@ -47,6 +47,7 @@ func main() {
 	rApi.Get("/chirps", apiCfg.handlerChirpGet)
 	rApi.Get("/chirps/{chirpid}", apiCfg.handlerChirpGetById)
 	rApi.Post("/users", apiCfg.handlerUserCreate)
+	rApi.Post("/login", apiCfg.handlerUserLogin)
 	r.Mount("/api", rApi)
 
 	rAdmin := chi.NewRouter()

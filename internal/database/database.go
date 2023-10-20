@@ -67,17 +67,16 @@ func (db *DB) CreateUser(email string, password []byte) (User, error) {
 		return User{}, err
 	}
 
+	_, err = db.LookupUserByMail(email)
+	if err == nil {
+		return User{}, errors.New("E-Mail already registered")
+	}
+
 	id := len(dbStructure.Users) + 1
 	user := User{
 		ID:       id,
 		EMail:    email,
 		Password: password,
-	}
-
-	for i := range dbStructure.Users {
-		if email == dbStructure.Users[i].EMail {
-			return User{}, errors.New("E-Mail already registered")
-		}
 	}
 
 	dbStructure.Users[id] = user
@@ -102,6 +101,22 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 	}
 
 	return chirps, nil
+
+}
+
+// GetChirps returns all chirps in the database
+func (db *DB) GetUsers() ([]User, error) {
+	dbStructure, err := db.loadDB()
+	if err != nil {
+		return nil, err
+	}
+
+	Users := make([]User, 0, len(dbStructure.Users))
+	for _, user := range dbStructure.Users {
+		Users = append(Users, user)
+	}
+
+	return Users, nil
 
 }
 
@@ -153,4 +168,17 @@ func (db *DB) writeDB(dbStructure DBStructure) error {
 		return err
 	}
 	return nil
+}
+
+func (db *DB) LookupUserByMail(email string) (User, error) {
+	dbStructure, err := db.loadDB()
+	if err != nil {
+		return User{}, err
+	}
+	for i := range dbStructure.Users {
+		if email == dbStructure.Users[i].EMail {
+			return dbStructure.Users[i], nil
+		}
+	}
+	return User{}, errors.New("User not registered")
 }
