@@ -1,9 +1,13 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/aduatgit/chirpy/internal/database"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -11,8 +15,24 @@ func main() {
 	const filepathRoot = "."
 	const port = "8080"
 
+	dbg := flag.Bool("debug", false, "Enable debug mode")
+	flag.Parse()
+
+	if *dbg {
+		os.Remove("database.json") // please handle the error properly
+		fmt.Println("Debug mode enabled, database deleted.")
+	} else {
+		fmt.Println("Debug mode not enabled, database safe.")
+	}
+
+	db, err := database.NewDB("database.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	apiCfg := apiConfig{
 		fileserverHits: 0,
+		DB:             db,
 	}
 
 	r := chi.NewRouter()
@@ -23,6 +43,10 @@ func main() {
 	rApi := chi.NewRouter()
 	rApi.Get("/healthz", handlerReadiness)
 	rApi.Get("/reset", apiCfg.handlerMetricsReset)
+	rApi.Post("/chirps", apiCfg.handlerChirpCreate)
+	rApi.Get("/chirps", apiCfg.handlerChirpGet)
+	rApi.Get("/chirps/{chirpid}", apiCfg.handlerChirpGetById)
+	rApi.Post("/users", apiCfg.handlerUserCreate)
 	r.Mount("/api", rApi)
 
 	rAdmin := chi.NewRouter()
@@ -35,7 +59,7 @@ func main() {
 		Handler: corsMux,
 	}
 
-	log.Printf("Serving files from%s on port: %s\n", filepathRoot, port)
+	log.Printf("Serving files from %s on port: %s\n", filepathRoot, port)
 	log.Fatal(srv.ListenAndServe())
 }
 
@@ -43,4 +67,5 @@ func main() {
 
 type apiConfig struct {
 	fileserverHits int
+	DB             *database.DB
 }
