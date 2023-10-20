@@ -24,9 +24,12 @@ type Chirp struct {
 
 type User struct {
 	ID       int    `json:"id"`
-	EMail    string `json:"email"`
-	Password []byte `json:"password"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
+
+var ErrNotExist = errors.New("resource does not exist")
+var ErrAlreadyExists = errors.New("already exists")
 
 // NewDB creates a new database connection
 // and creates the database file if it doesn't exist
@@ -60,8 +63,8 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 	return chirp, nil
 }
 
-// CreateChirp creates a new chirp and saves it to disk
-func (db *DB) CreateUser(email string, password []byte) (User, error) {
+// CreateUser creates a new user and saves it to disk
+func (db *DB) CreateUser(email string, password string) (User, error) {
 	dbStructure, err := db.loadDB()
 	if err != nil {
 		return User{}, err
@@ -75,7 +78,7 @@ func (db *DB) CreateUser(email string, password []byte) (User, error) {
 	id := len(dbStructure.Users) + 1
 	user := User{
 		ID:       id,
-		EMail:    email,
+		Email:    email,
 		Password: password,
 	}
 
@@ -104,7 +107,7 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 
 }
 
-// GetChirps returns all chirps in the database
+// GetChirps returns all users in the database
 func (db *DB) GetUsers() ([]User, error) {
 	dbStructure, err := db.loadDB()
 	if err != nil {
@@ -117,7 +120,29 @@ func (db *DB) GetUsers() ([]User, error) {
 	}
 
 	return Users, nil
+}
 
+func (db *DB) UpdateUser(id int, email, hashedPassword string) (User, error) {
+	dbStructure, err := db.loadDB()
+	if err != nil {
+		return User{}, err
+	}
+
+	user, ok := dbStructure.Users[id]
+	if !ok {
+		return User{}, ErrNotExist
+	}
+
+	user.Email = email
+	user.Password = hashedPassword
+	dbStructure.Users[id] = user
+
+	err = db.writeDB(dbStructure)
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
 }
 
 // ensureDB creates a new database file if it doesn't exist
@@ -176,7 +201,7 @@ func (db *DB) LookupUserByMail(email string) (User, error) {
 		return User{}, err
 	}
 	for i := range dbStructure.Users {
-		if email == dbStructure.Users[i].EMail {
+		if email == dbStructure.Users[i].Email {
 			return dbStructure.Users[i], nil
 		}
 	}

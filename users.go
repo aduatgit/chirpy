@@ -3,14 +3,15 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
-	"golang.org/x/crypto/bcrypt"
+	"github.com/aduatgit/chirpy/internal/auth"
 )
 
 type User struct {
 	ID       int    `json:"id"`
-	EMail    string `json:"email"`
-	Password []byte `json:"password"`
+	Email    string `json:"email"`
+	Password []byte `json:"-"`
 }
 
 func (cfg *apiConfig) handlerUserCreate(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +32,7 @@ func (cfg *apiConfig) handlerUserCreate(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	password, err := bcrypt.GenerateFromPassword([]byte(params.Password), 4)
+	password, err := auth.HashPassword(params.Password)
 	if err != nil {
 		respondWithError(w, 400, err.Error())
 		return
@@ -46,45 +47,60 @@ func (cfg *apiConfig) handlerUserCreate(w http.ResponseWriter, r *http.Request) 
 
 	respondWithJSON(w, http.StatusCreated, responseBody{
 		ID:    user.ID,
-		EMail: user.EMail,
+		EMail: user.Email,
 	})
 
 }
 
-func (cfg *apiConfig) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
-	type requestBody struct {
-		Password string `json:"password"`
-		EMail    string `json:"email"`
+func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Password         string `json:"password"`
+		Email            string `json:"email"`
+		ExpiresInSeconds int    `json:"expires_in_seconds"`
 	}
-	type responseBody struct {
-		ID    int    `json:"id"`
-		EMail string `json:"email"`
+	type response struct {
+		User
+		Token string `json:"token"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
-	params := requestBody{}
+	params := parameters{}
 	err := decoder.Decode(&params)
 	if err != nil {
-		respondWithError(w, 500, "couldn't decode parameters")
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters")
 		return
 	}
 
-	email := params.EMail
-	password := params.Password
-	user, err := cfg.DB.LookupUserByMail(email)
+	user, err := cfg.DB.LookupUserByMail(params.Email)
 	if err != nil {
-		respondWithError(w, 401, err.Error())
+		respondWithError(w, http.StatusInternalServerError, "Couldn't get user")
+		return
 	}
 
-	err = bcrypt.CompareHashAndPassword(user.Password, []byte(password))
+	err = auth.CheckPasswordHash(params.Password, user.Password)
 	if err != nil {
-		respondWithError(w, 401, err.Error())
-	}
-	respBody := responseBody{
-		ID:    user.ID,
-		EMail: user.EMail,
+		respondWithError(w, http.StatusUnauthorized, "Invalid password")
+		return
 	}
 
-	respondWithJSON(w, http.StatusOK, respBody)
+	defaultExpiration := 60 * 60 * 24
+	if params.ExpiresInSeconds == 0 {
+		params.ExpiresInSeconds = defaultExpiration
+	} else if params.ExpiresInSeconds > defaultExpiration {
+		params.ExpiresInSeconds = defaultExpiration
+	}
 
+	token, err := auth.MakeJWT(user.ID, cfg.jwtSecret, time.Duration(params.ExpiresInSeconds)*time.Second)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create JWT")
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, response{
+		User: User{
+			ID:    user.ID,
+			Email: user.Email,
+		},
+		Token: token,
+	})
 }
