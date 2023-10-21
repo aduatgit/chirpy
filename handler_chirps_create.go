@@ -29,6 +29,7 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 	authorID, err := strconv.Atoi(author)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't convert Author to AuthorID")
+		return
 	}
 
 	decoder := json.NewDecoder(r.Body)
