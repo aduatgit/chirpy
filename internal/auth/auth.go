@@ -92,3 +92,11 @@ func GetBearerToken(headers http.Header) (string, error) {
 
 	return splitAuth[1], nil
 }
+
+func CheckAuthorization(headers http.Header, tokenSecret string) (string, error) {
+	token, err := GetBearerToken(headers)
+	if err != nil {
+		return "", err
+	}
+	return ValidateJWT(token, tokenSecret)
+}

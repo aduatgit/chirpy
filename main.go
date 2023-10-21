@@ -47,9 +47,12 @@ func main() {
 	rApi := chi.NewRouter()
 	rApi.Get("/healthz", handlerReadiness)
 	rApi.Get("/reset", apiCfg.handlerMetricsReset)
+
 	rApi.Post("/chirps", apiCfg.handlerChirpsCreate)
-	rApi.Get("/chirps", apiCfg.handlerChirpsGet)
-	rApi.Get("/chirps/{chirpid}", apiCfg.handlerChirpsRetrieve)
+	rApi.Get("/chirps", apiCfg.handlerChirpsRetrieve)
+	rApi.Get("/chirps/{chirpID}", apiCfg.handlerChirpsGet)
+	rApi.Delete("/chirps/{chirpID}", apiCfg.handlerChirpsDelete)
+
 	rApi.Post("/users", apiCfg.handlerUsersCreate)
 	rApi.Post("/login", apiCfg.handlerLogin)
 	rApi.Put("/users", apiCfg.handlerUsersUpdate)
