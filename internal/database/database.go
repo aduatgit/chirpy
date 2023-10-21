@@ -13,14 +13,9 @@ type DB struct {
 }
 
 type DBStructure struct {
-	Chirps map[int]Chirp `json:"chirps"`
-	Users  map[int]User  `json:"users"`
-}
-
-type User struct {
-	ID             int    `json:"id"`
-	Email          string `json:"email"`
-	HashedPassword string `json:"hashed_password"`
+	Chirps map[int]Chirp    `json:"chirps"`
+	Users  map[int]User     `json:"users"`
+	Tokens map[string]Token `json:"tokens"`
 }
 
 var ErrNotExist = errors.New("resource does not exist")
@@ -49,6 +44,7 @@ func (db *DB) createDB() error {
 	dbStructure := DBStructure{
 		Chirps: map[int]Chirp{},
 		Users:  map[int]User{},
+		Tokens: map[string]Token{},
 	}
 	return db.writeDB(dbStructure)
 }

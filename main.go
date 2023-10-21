@@ -53,6 +53,8 @@ func main() {
 	rApi.Post("/users", apiCfg.handlerUsersCreate)
 	rApi.Post("/login", apiCfg.handlerLogin)
 	rApi.Put("/users", apiCfg.handlerUsersUpdate)
+	rApi.Post("/refresh", apiCfg.handlerRefresh)
+	rApi.Post("/revoke", apiCfg.handlerRevoke)
 	r.Mount("/api", rApi)
 
 	rAdmin := chi.NewRouter()

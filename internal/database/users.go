@@ -4,6 +4,12 @@ import "errors"
 
 var ErrAlreadyExists = errors.New("already exists")
 
+type User struct {
+	ID             int    `json:"id"`
+	Email          string `json:"email"`
+	HashedPassword string `json:"hashed_password"`
+}
+
 func (db *DB) CreateUser(email, hashedPassword string) (User, error) {
 	if _, err := db.GetUserByEmail(email); !errors.Is(err, ErrNotExist) {
 		return User{}, ErrAlreadyExists
