@@ -54,10 +54,13 @@ func main() {
 	rApi.Delete("/chirps/{chirpID}", apiCfg.handlerChirpsDelete)
 
 	rApi.Post("/users", apiCfg.handlerUsersCreate)
-	rApi.Post("/login", apiCfg.handlerLogin)
 	rApi.Put("/users", apiCfg.handlerUsersUpdate)
+	rApi.Post("/login", apiCfg.handlerLogin)
+
 	rApi.Post("/refresh", apiCfg.handlerRefresh)
 	rApi.Post("/revoke", apiCfg.handlerRevoke)
+
+	rApi.Post("/polka/webhooks", apiCfg.handlerPolkaWebhook)
 	r.Mount("/api", rApi)
 
 	rAdmin := chi.NewRouter()
